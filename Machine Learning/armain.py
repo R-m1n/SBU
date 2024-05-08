@@ -240,3 +240,38 @@ class BayesianRegression():
 
     def _create_design_matrix(self, X):
         return np.power(X, np.arange(self.degree + 1))
+    
+
+class RidgeRegression():
+    def __init__(self, lambda_ = 1):
+        self.lambda_ = lambda_
+
+        self.beta_ridge = None
+
+    def __call__(self, X: np.ndarray):
+        return X @ self.beta_ridge
+    
+    def train(self, data_loader: DataLoader):
+        input_train, target_train = data_loader.get_training() 
+        input_val, target_val = data_loader.get_validation()
+
+        train_size = data_loader.train_size
+        val_size = data_loader.val_size
+
+        I = np.identity(input_train.shape[1])
+
+        self.beta_ridge = np.linalg.inv(input_train.T @ input_train + self.lambda_ * I) @ input_train.T @ target_train
+
+        train_pred = self(input_train)
+
+        train_error = train_pred - target_train
+
+        train_rmsd = np.sqrt((np.power(train_error, 2) / 2)) / train_size
+
+        val_pred = self(input_val)
+
+        val_error = val_pred - target_val
+
+        val_rmsd = np.sqrt((np.power(val_error, 2) / 2)) / val_size
+
+        return train_rmsd, val_rmsd
