@@ -164,79 +164,79 @@ class Regression():
         return train_rmsd, val_rmsd
     
 
-    class PolynomialRegression():
-        def __init__(self, degree = 1):
-            self.degree = degree
+class PolynomialRegression():
+    def __init__(self, degree = 1):
+        self.degree = degree
 
-            self.w = np.zeros(self.degree)
-            self.b = 0
+        self.w = np.zeros(self.degree)
+        self.b = 0
 
-            self._model = lambda x: self.w.dot(x) + self.b
+        self._model = lambda x: self.w.dot(x) + self.b
 
-        def __call__(self, x):
-            return self._model(self._preprocess(x))
+    def __call__(self, x):
+        return self._model(self._preprocess(x))
 
-        def train(self, X: np.ndarray, Y: np.ndarray, epoch = 2000, learning_rate = 0.01, lasso = 0, ridge = 0):
-            n = len(X)
+    def train(self, X: np.ndarray, Y: np.ndarray, epoch = 2000, learning_rate = 0.01, lasso = 0, ridge = 0):
+        n = len(X)
 
-            costs = []
+        costs = []
 
-            sign = np.vectorize(lambda x : 1 if x >= 0 else -1)
+        sign = np.vectorize(lambda x : 1 if x >= 0 else -1)
 
-            for _ in range(epoch):
-                cost = 0
-                
-                for index in range(n):
-                    x, y = self._preprocess(X.item(index)), Y.item(index)
+        for _ in range(epoch):
+            cost = 0
+            
+            for index in range(n):
+                x, y = self._preprocess(X.item(index)), Y.item(index)
 
-                    prediction = self._model(x)
+                prediction = self._model(x)
 
-                    error = prediction - y
+                error = prediction - y
 
-                    loss = pow(error, 2) / 2
+                loss = pow(error, 2) / 2
 
-                    cost += loss
+                cost += loss
 
-                    l1_update = lasso * sign(self.w)
+                l1_update = lasso * sign(self.w)
 
-                    l2_update = (2 * ridge) * self.w
+                l2_update = (2 * ridge) * self.w
 
-                    regularization_term = l1_update + l2_update
+                regularization_term = l1_update + l2_update
 
-                    update_term = ((error * x) + regularization_term)
+                update_term = ((error * x) + regularization_term)
 
-                    self.w -= learning_rate * update_term
+                self.w -= learning_rate * update_term
 
-                    self.b -= learning_rate * error
+                self.b -= learning_rate * error
 
-                costs.append(cost)
+            costs.append(cost)
 
-            return costs
+        return costs
 
-        def _preprocess(self, x):
-            return np.array([pow(x, i) for i in range(1, self.degree + 1)])
-    
+    def _preprocess(self, x):
+        return np.array([pow(x, i) for i in range(1, self.degree + 1)])
 
-    class BayesianRegression():
-        def __init__(self, degree, noise, alpha = 0.05):
-            self.degree = degree
-            self.noise = noise
-            self.alpha = alpha
-            self.beta = pow((1 / self.noise), 2)
 
-            self.m_N = None
+class BayesianRegression():
+    def __init__(self, degree, noise, alpha = 0.05):
+        self.degree = degree
+        self.noise = noise
+        self.alpha = alpha
+        self.beta = pow((1 / self.noise), 2)
 
-        def __call__(self, X: np.ndarray):
-            return self._create_design_matrix(X) @ self.m_N
+        self.m_N = None
 
-        def train(self, X: np.ndarray, Y: np.ndarray, ridge = 0):
-            phi = self._create_design_matrix(X)
+    def __call__(self, X: np.ndarray):
+        return self._create_design_matrix(X) @ self.m_N
 
-            S_N_inv = self.alpha * np.eye(self.degree + 1) + self.beta * phi.T @ phi + ridge * np.eye(self.degree + 1)
+    def train(self, X: np.ndarray, Y: np.ndarray, ridge = 0):
+        phi = self._create_design_matrix(X)
 
-            S_N = np.linalg.inv(S_N_inv)
+        S_N_inv = self.alpha * np.eye(self.degree + 1) + self.beta * phi.T @ phi + ridge * np.eye(self.degree + 1)
 
-            self.m_N = self.beta * S_N @ phi.T @ Y
+        S_N = np.linalg.inv(S_N_inv)
 
-        def _create_design_matrix(self, X):
-            return np.power(X, np.arange(self.degree + 1))
+        self.m_N = self.beta * S_N @ phi.T @ Y
+
+    def _create_design_matrix(self, X):
+        return np.power(X, np.arange(self.degree + 1))
