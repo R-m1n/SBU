@@ -164,6 +164,82 @@ class Regression():
         return train_rmsd, val_rmsd
     
 
+class BatchRegression():
+    def __init__(self):
+        self.w = None
+        self.b = 0
+
+        self._model = lambda x: self.w.dot(x) + self.b
+
+    def train(self, data_loader: DataLoader, epoch = 10,
+              learning_rate = 0.01, lasso = 0, ridge = 0):
+        
+        input_train, target_train = data_loader.get_training() 
+        input_val, target_val = data_loader.get_validation()
+
+        self.w = np.zeros(data_loader.features)
+
+        train_size = data_loader.train_size
+        val_size = data_loader.val_size
+
+        train_rmsd = []
+        val_rmsd = []
+
+        sign = np.vectorize(lambda x : 1 if x >= 0 else -1)
+
+        for _ in range(epoch):
+            train_cost = 0
+            val_cost = 0
+
+            w_update = 0
+            b_update = 0
+
+            regularization_term = 0
+
+            for idx in range(train_size):
+                input, target = input_train[idx], target_train[idx]
+
+                prediction = self._model(input)
+
+                error = prediction - target
+
+                train_loss = np.power(error, 2) / 2
+
+                train_cost += train_loss
+
+                l1_update = lasso * sign(self.w)
+
+                l2_update = (2 * ridge) * self.w
+
+                regularization_term += l1_update + l2_update
+
+                w_update += (error * input)
+
+                b_update += error
+
+            self.w -= learning_rate * (w_update + regularization_term)
+
+            self.b -= learning_rate * b_update
+
+
+            for idx in range(val_size):
+                input, target = input_val[idx], target_val[idx]
+
+                prediction = self._model(input)
+
+                error = prediction - target
+
+                val_loss = np.power(error, 2) / 2
+
+                val_cost += val_loss
+
+
+            train_rmsd.append(sqrt(train_cost / train_size))
+            val_rmsd.append(sqrt(val_cost / val_size))
+
+        return train_rmsd, val_rmsd    
+
+
 class PolynomialRegression():
     def __init__(self, degree = 1):
         self.degree = degree
