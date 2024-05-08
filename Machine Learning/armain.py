@@ -95,7 +95,7 @@ class DataLoader():
                 self.data[label] = np.sqrt(term + pow(parameter, 2))
 
 
-class Regression():
+class StochasticRegression():
     def __init__(self):
         self.w = None
         self.b = 0
